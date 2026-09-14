@@ -30,6 +30,7 @@ A comprehensive smart home automation project that allows you to control LEDs an
 
 | Guide | What it covers |
 |---|---|
+| [Getting the latest version](#4-getting-the-latest-version) | Updating the Pi with `git pull`, and what to do if it shows an error |
 | [WIRING_GUIDE.md](WIRING_GUIDE.md) | Identifying each component, breadboard layout, per-device troubleshooting |
 | [SERVO_TUNING_GUIDE.md](SERVO_TUNING_GUIDE.md) | Changing how far the doors open, reversing direction, slowing the movement |
 | [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md) | Adding your own circuits — the Python side and the Swift app side |
@@ -215,6 +216,116 @@ The setup script will:
 3. **Copy the Simpson's House app code** into your playground
 4. **Update the IP address** if needed (the app defaults to `192.168.5.115`)
 5. **Run the app** and grant Local Network permissions when prompted
+
+### 4. Getting the latest version
+
+When the project is updated on GitHub, the Pi does not change by itself. Run
+these commands on the Pi to download the updates.
+
+**1. Go to the project folder**
+
+```bash
+cd ~/simpsons-house
+```
+
+**2. Download the updates**
+
+```bash
+git pull
+```
+
+If there is nothing new, you will see:
+
+```
+Already up to date.
+```
+
+If there are updates, you will see the files that changed, for example:
+
+```
+Updating abc1234..def5678
+Fast-forward
+ EXTENSION_GUIDE.md | 1 +
+ mqttlistener.py    | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+```
+
+**3. Restart the house program** so it runs the new code:
+
+```bash
+sudo systemctl restart simpsons-house.service
+```
+
+**4. Check it is running:**
+
+```bash
+sudo systemctl status simpsons-house.service --no-pager
+```
+
+Look for `Active: active (running)` near the top. Press `q` if the output does
+not return you to the prompt.
+
+**What `git pull` does not change**
+
+- **Your door positions.** `servo_angles.json` is kept, so you do not need to
+  tune the doors again.
+- **The iPad app.** `git pull` only updates the Pi. To get a new version of the
+  app, download `SimpsonsHouse.swiftpm.zip` from GitHub again on the iPad.
+
+#### If `git pull` shows an error
+
+**`error: Your local changes to the following files would be overwritten by merge`**
+
+Someone has edited a project file on this Pi, usually `mqttlistener.py`. Git will
+not overwrite those edits without asking. The message lists the files:
+
+```
+error: Your local changes to the following files would be overwritten by merge:
+	mqttlistener.py
+Please commit your changes or stash them before you merge.
+Aborting
+```
+
+Nothing has been changed yet. Choose one option:
+
+*Option A: Throw the edits away and take the update.* Use this if the edits were
+from the old servo guide (changing angle numbers by hand), or you do not need
+them. The edits are set aside, not deleted, so they can be recovered.
+
+```bash
+git stash
+git pull
+sudo systemctl restart simpsons-house.service
+```
+
+*Option B: Keep the edits and take the update.* Use this if you are an extension
+student and the edits are your own code, such as a new device.
+
+```bash
+git stash
+git pull
+git stash pop
+```
+
+If `git stash pop` ends with `Dropped refs/stash@{0}`, your edits are back on top
+of the update. Restart the house program and test it.
+
+If it says `CONFLICT (content): Merge conflict in mqttlistener.py`, your edits and
+the update changed the same lines. Your edits are still saved (it says
+`The stash entry is kept in case you need it again`). Put the file back to the
+updated version, then ask your teacher to help merge your code in:
+
+```bash
+git reset --hard
+```
+
+**`fatal: not a git repository`**
+
+You are not in the project folder. Run `cd ~/simpsons-house` and try again.
+
+**`Could not resolve host: github.com`**
+
+The Pi is not connected to the internet. Check the Wi-Fi and try again.
 
 ## 🎮 Using the App
 
