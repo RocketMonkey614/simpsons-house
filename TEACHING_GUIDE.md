@@ -301,9 +301,10 @@ pwm.ChangeDutyCycle(0)             # stop pulsing so it doesn't hum
 ```
 
 One function serves both doors — you pass in the PWM object for whichever servo
-you want to move. `control_garage_door()` and `control_door()` both map
-**open = 90°, closed = 0°**. Change those angles to match how you physically
-mount the servo horn.
+you want to move. `control_garage_door()` and `control_door()` look up the open and closed
+angles from `servo_angles.json`, which students fill in with
+`servo_calibrate.py` rather than editing the code (see `SERVO_TUNING_GUIDE.md`).
+If nothing has been saved, they use **open = 90°, closed = 0°**.
 
 **Teaching point:** this is the difference between *open-loop* and *closed-loop*
 control. A stepper is open-loop — you count steps and hope. A servo is closed-loop
@@ -469,7 +470,7 @@ Adjust until the travel distance matches your physical model.
 
 ### Intermediate: Add terminal logging for the servo angle
 
-In `control_door()` in `mqttlistener.py`, the servo angle is calculated as `90 if state else 0`. Change the fully-open angle to 120° and verify you can see the servo move further. Add a log message to print the exact duty cycle being sent.
+Use `servo_calibrate.py` to save a front door open angle of 120°, then open `servo_angles.json` to see how it was stored. In `mqttlistener.py`, find where `control_door()` reads that value with `load_servo_angles()`. Then add a log message to `set_servo_angle()` that prints the exact duty cycle being sent, and check it matches the table in `SERVO_TUNING_GUIDE.md`.
 
 ---
 

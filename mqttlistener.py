@@ -19,6 +19,7 @@ import RPi.GPIO as GPIO           # Library that controls the Pi's physical pins
 import time                       # Used to add pauses (e.g. while servo moves)
 import logging                    # Used to print status messages to the terminal
 import json                       # Used to format status updates as JSON (structured text)
+import os                         # Used to find servo_angles.json next to this file
 import signal                     # Used to catch Ctrl+C and shutdown cleanly
 import sys                        # Used to exit the program
 from datetime import datetime     # Used to add timestamps to log messages
@@ -36,6 +37,17 @@ from datetime import datetime     # Used to add timestamps to log messages
 LIGHT_PIN        = 17   # Living Room Light (LED + 220Ω resistor on GPIO 17)
 GARAGE_SERVO_PIN = 27   # Garage Door Servo signal wire
 SERVO_PIN        = 23   # Front Door Servo signal wire
+
+# Open and closed angles for each door servo, in degrees (0-180).
+# TEACHING: You do not type these numbers in here. Run servo_calibrate.py,
+# move each door to where it looks right, and the tool saves the angles to
+# servo_angles.json next to this file. These defaults are only used until
+# that file exists.
+SERVO_ANGLES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "servo_angles.json")
+DEFAULT_SERVO_ANGLES = {
+    "garage": {"open": 90, "closed": 0},
+    "door":   {"open": 90, "closed": 0},
+}
 
 # MQTT broker address — "localhost" means "on this same Raspberry Pi".
 # The broker is a separate program (Mosquitto) that routes messages.
@@ -157,6 +169,34 @@ def set_servo_angle(pwm, angle: int, label: str = "Servo") -> bool:
     except Exception as e:
         logger.error(f"❌ Servo control failed ({label}): {e}")
         return False
+
+
+def load_servo_angles() -> dict:
+    """
+    Read the open and closed angle for each door from servo_angles.json.
+
+    TEACHING: Keeping these numbers in their own file means the doors can be
+    tuned with servo_calibrate.py without anyone editing this program. The
+    file is read every time a door command arrives, so a newly saved angle
+    is used on the very next open or close.
+
+    If the file is missing, or a value in it is not a number from 0 to 180,
+    the default angle is used for that position instead.
+    """
+    angles = {door: dict(positions) for door, positions in DEFAULT_SERVO_ANGLES.items()}
+    try:
+        with open(SERVO_ANGLES_FILE) as f:
+            saved = json.load(f)
+        for door in angles:
+            for position in ("open", "closed"):
+                value = saved.get(door, {}).get(position)
+                if isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 180:
+                    angles[door][position] = int(value)
+    except FileNotFoundError:
+        pass  # Nothing saved yet, so the defaults are used
+    except (OSError, ValueError, AttributeError) as e:
+        logger.warning(f"⚠️  Could not read {SERVO_ANGLES_FILE}, using default angles: {e}")
+    return angles
 
 
 # =============================================================================
@@ -308,16 +348,17 @@ def control_garage_door(open_door: bool) -> bool:
     Open or close the garage door using the servo motor.
 
     TEACHING: The servo understands angles, not on/off.
-    We map "open" to 90° and "closed" to 0°.
-    Both the garage door and front door use the same type of servo —
-    we just call set_servo_angle() with the correct PWM object for each.
-    You can adjust these angles to match how your servo is physically mounted.
+    We look up the "open" and "closed" angles saved by servo_calibrate.py
+    (90° and 0° if nothing has been saved yet).
+    Both the garage door and front door use the same type of servo,
+    so we just call set_servo_angle() with the correct PWM object for each.
     """
     try:
-        angle   = 90 if open_door else 0  # OPEN = 90°, CLOSED = 0°
+        angles  = load_servo_angles()["garage"]
+        angle   = angles["open"] if open_door else angles["closed"]
         success = set_servo_angle(GARAGE_SERVO_PWM, angle, label="Garage Door Servo")
         if success:
-            logger.info(f"🚗 Garage Door → {'OPEN (90°)' if open_door else 'CLOSED (0°)'}")
+            logger.info(f"🚗 Garage Door → {'OPEN' if open_door else 'CLOSED'} ({angle}°)")
         return success
     except Exception as e:
         logger.error(f"❌ Garage door error: {e}")
@@ -329,14 +370,15 @@ def control_door(state: bool) -> bool:
     Open or close the front door servo.
 
     TEACHING: The servo understands angles, not on/off.
-    We map the "open" concept to 90° and "closed" to 0°.
-    You can change these angles to match how your servo is physically mounted.
+    We look up the "open" and "closed" angles saved by servo_calibrate.py
+    (90° and 0° if nothing has been saved yet).
     """
     try:
-        angle   = 90 if state else 0  # OPEN = 90°, CLOSED = 0°
+        angles  = load_servo_angles()["door"]
+        angle   = angles["open"] if state else angles["closed"]
         success = set_servo_angle(SERVO_PWM, angle, label="Front Door Servo")
         if success:
-            logger.info(f"🚪 Front Door → {'OPEN (90°)' if state else 'CLOSED (0°)'}")
+            logger.info(f"🚪 Front Door → {'OPEN' if state else 'CLOSED'} ({angle}°)")
         return success
     except Exception as e:
         logger.error(f"❌ Door control error: {e}")

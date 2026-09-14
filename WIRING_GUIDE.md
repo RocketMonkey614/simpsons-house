@@ -211,7 +211,7 @@ back. If it buzzes without moving, check the red wire is on 5V.
 | Servo buzzes but barely moves | Powered from 3.3V instead of 5V | Move the red wire to a 5V pin |
 | Servo doesn't move at all | Common GND missing | Check the brown/black wire to Pi GND |
 | Servo hums continuously when idle | Still being sent pulses | The code should call `ChangeDutyCycle(0)` after each move |
-| Servo moves the wrong way | Angles mapped the other way round | Swap the values in `control_garage_door()` |
+| Servo moves the wrong way | Positions saved the other way round | Re-save them with `servo_calibrate.py` (see `SERVO_TUNING_GUIDE.md`) |
 | Servo won't reach full travel | SG90 unit variation, or door binding | Adjust the 2%–12% range in `set_servo_angle()`; check the door moves freely |
 | Pi reboots when the servo moves | Both servos drawing peak current at once | Add an external 5V supply, GND common with the Pi |
 
@@ -280,10 +280,11 @@ When you run the test, the servo arm moves:
 - **0°** — arm rotated fully to one end stop (the "closed door" position)
 - **90°** — arm rotated 90° from that point (the "open door" position)
 
-Exactly which physical direction that is depends on how you mount the servo. If it opens the wrong way, change the angles in `control_door()`:
-```python
-angle = 90 if state else 0   # change 90 to 180 if the arm moves the wrong way
+Exactly which physical direction that is depends on how you mount the servo. That is fine. Once the house is working, you set the real open and closed positions for your model with the calibration tool, without editing any code:
+```bash
+mqttenv/bin/python servo_calibrate.py
 ```
+See `SERVO_TUNING_GUIDE.md` for the steps.
 
 ### Test it
 
@@ -300,8 +301,8 @@ python3 gpio_test.py
 | Servo doesn't move | Signal wire on wrong pin | Check orange/yellow wire → GPIO 23 (pin 16) |
 | Servo twitches but doesn't hold position | Power wire not connected | Check red wire → 5V (pin 4) |
 | Servo buzzes constantly | PWM not stopping after move | Check `SERVO_PWM.ChangeDutyCycle(0)` is called in `set_servo_angle()` |
-| Servo moves to wrong position | Wrong duty cycle | Try changing the `angle` value in `control_door()` |
-| Servo arm moves backwards | Mounted upside down | Physically flip the servo, or swap 0 and 90 in the code |
+| Servo moves to wrong position | Positions not set for your model | Set them with `servo_calibrate.py` (see `SERVO_TUNING_GUIDE.md`) |
+| Servo arm moves backwards | Mounted the other way round | Save the open and closed positions the other way round with `servo_calibrate.py` |
 
 ---
 

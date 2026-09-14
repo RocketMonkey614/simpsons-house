@@ -108,7 +108,7 @@ class SimpsonsHouseGPIOTest:
         print()
         print("   If the arm moves the wrong way:")
         print("   • The servo may be mounted upside-down — that is fine for testing")
-        print("   • You can flip the physical servo, or swap the angles in control_garage_door()")
+        print("   • Set the real open/closed positions later with servo_calibrate.py (see SERVO_TUNING_GUIDE.md)")
         print()
 
         input("   Press ENTER when you are watching the garage servo arm...")
@@ -153,7 +153,7 @@ class SimpsonsHouseGPIOTest:
         print()
         print("   If the arm moves the wrong way:")
         print("   • The servo may be mounted upside-down — that is fine for testing")
-        print("   • You can flip the physical servo, or change the angle in control_door()")
+        print("   • Set the real open/closed positions later with servo_calibrate.py (see SERVO_TUNING_GUIDE.md)")
         print()
 
         input("   Press ENTER when you are watching the front door servo arm...")

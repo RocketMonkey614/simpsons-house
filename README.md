@@ -282,12 +282,15 @@ SERVO_PIN        = 23   # Front door servo signal
 ```
 
 ### Servo Angles
-The front door and garage door angles are set in `control_door()` and `control_garage_door()` in `mqttlistener.py`:
-```python
-angle = 90 if state else 0   # OPEN = 90°, CLOSED = 0°
+Set how far each door opens and closes with the calibration tool. No code editing needed:
+```bash
+cd ~/simpsons-house
+sudo systemctl stop simpsons-house.service
+mqttenv/bin/python servo_calibrate.py
 ```
+Move a door until it looks right, type `closed` or `open` to save it, then `q` to quit and `sudo systemctl start simpsons-house.service`. Positions are saved per Pi in `servo_angles.json` (not tracked by git). Until something is saved, doors use open 90°, closed 0°.
 
-> 📖 **See [SERVO_TUNING_GUIDE.md](SERVO_TUNING_GUIDE.md)** for how to find the right angles for your model, reverse a door's direction, and slow the movement down — plus `servo_calibrate.py`, an interactive tool for jogging each servo to find its angles.
+> 📖 **See [SERVO_TUNING_GUIDE.md](SERVO_TUNING_GUIDE.md)** for step-by-step instructions, reversing a door that opens the wrong way, and slowing the movement down.
 
 ### Network Settings
 Update the iOS app host address:
@@ -376,7 +379,7 @@ mosquitto_pub -h localhost -t home/door -m ON   # Servo open
 - Both servos on Pi 5V can brown out the Pi if they move at the same instant under load; add an external 5V supply (GND common with the Pi) if so
 
 **Servo moves the wrong way:**
-- Swap the angles in `control_garage_door()` / `control_door()` — the code maps OPEN = 90°, CLOSED = 0°
+- Re-save the open and closed positions the other way round with `servo_calibrate.py` (see [SERVO_TUNING_GUIDE.md](SERVO_TUNING_GUIDE.md))
 - Or remount the horn 90° round on the spline
 
 **Servo doesn't reach full travel:**
@@ -436,7 +439,7 @@ simpsons-house/
 ├── 🐍 mqttlistener.py               # Python MQTT listener with servo control
 ├── 🔐 install_ca.sh                # FortiGate certificate installer
 ├── 🧪 gpio_test.py                  # Hardware test: light + both servos
-├── 🎛️  servo_calibrate.py            # Interactive servo angle finder
+├── 🎛️  servo_calibrate.py            # Set and save each door's open/closed angles
 ├── 📁 extensions/                   # Optional extension hardware
 │   └── 🧪 stepper_test.py           # Stepper motor test (extension only)
 ├── 📱 ios-app/                     # Swift Playgrounds app code
