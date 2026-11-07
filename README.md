@@ -34,7 +34,7 @@ A comprehensive smart home automation project that allows you to control LEDs an
 | [WIRING_GUIDE.md](WIRING_GUIDE.md) | Identifying each component, breadboard layout, per-device troubleshooting |
 | [SERVO_TUNING_GUIDE.md](SERVO_TUNING_GUIDE.md) | Changing how far the doors open, reversing direction, slowing the movement |
 | [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md) | Adding your own circuits — the Python side and the Swift app side |
-| [TEACHING_GUIDE.md](TEACHING_GUIDE.md) | How a tap on the iPad becomes movement on the Pi |
+| [TEACHING_GUIDE.md](TEACHING_GUIDE.md) | Year 9–10 Chromebook coding project, curriculum links and student tasks |
 | [laser-cut/README.md](laser-cut/README.md) | DXF sheets, part chart, layer settings |
 
 ## 🔥 Laser-cut plans

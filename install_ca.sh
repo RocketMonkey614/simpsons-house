@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# TKC FortiGate CA Certificate Installer
-# Installs the FortiGate CA so HTTPS works through TKC SSL inspection
+# FortiGate CA Certificate Installer
+# Installs the FortiGate CA so HTTPS works through SSL inspection
 #
 # Also ensures the system clock is correct — a wrong clock causes
 # FortiGate's dynamically-signed interception certs to appear "not yet valid",
@@ -136,7 +136,7 @@ check_existing_certificate() {
         return 1
     fi
 
-    log "TKC FortiGate CA certificate is already installed and trusted."
+    log "FortiGate CA certificate is already installed and trusted."
     return 0
 }
 
@@ -144,7 +144,7 @@ check_connectivity() {
     log "Testing connectivity to certificate server..."
     if ! ping -c 1 -W 5 "${CERT_SERVER}" >/dev/null 2>&1; then
         warn "Cannot reach certificate server (${CERT_SERVER})"
-        warn "You may not be on the TKC network or the server may be down"
+        warn "You may not be on the network or the server may be down"
         return 1
     fi
     log "Certificate server is reachable"
@@ -152,7 +152,7 @@ check_connectivity() {
 }
 
 download_certificate() {
-    log "Downloading TKC FortiGate SSL-inspection CA from $DOWNLOAD_URL..."
+    log "Downloading FortiGate SSL-inspection CA from $DOWNLOAD_URL..."
 
     local temp_cert="/tmp/tkc_fortigate_ca_temp.pem"
 
