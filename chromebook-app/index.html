@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simpson's House</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="house-transport.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>🏠 Simpson's House</h1>
+      <p>Control the model house from a Chromebook.</p>
+    </header>
+
+    <section aria-labelledby="connection-heading">
+      <h2 id="connection-heading">Connection</h2>
+      <label for="pi-host">Raspberry Pi address</label>
+      <div class="connection-row">
+        <input id="pi-host" type="text" autocomplete="off" spellcheck="false" placeholder="192.168.5.123">
+        <button id="connect" type="button">Connect to House</button>
+      </div>
+      <p id="connection-status" role="status" aria-live="polite">Disconnected</p>
+    </section>
+
+    <section aria-labelledby="devices-heading">
+      <h2 id="devices-heading">Devices <small id="active-count">0/3 Active</small></h2>
+      <div class="devices">
+        <article>
+          <h3>💡 Living room light</h3>
+          <p id="light-status" aria-live="polite">Unknown</p>
+          <button type="button" data-device="light" data-action="on" disabled>Turn on</button>
+          <button type="button" data-device="light" data-action="off" disabled>Turn off</button>
+        </article>
+        <article>
+          <h3>🚗 Garage door</h3>
+          <p id="garage-status" aria-live="polite">Unknown</p>
+          <button type="button" data-device="garage" data-action="open" disabled>Open</button>
+          <button type="button" data-device="garage" data-action="close" disabled>Close</button>
+        </article>
+        <article>
+          <h3>🚪 Front door</h3>
+          <p id="door-status" aria-live="polite">Unknown</p>
+          <!-- TASK 4: Add Open and Close buttons here. Use data-device="door"
+               and data-action="open" or "close". Start both disabled. -->
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="activity-heading">
+      <h2 id="activity-heading">Activity</h2>
+      <ol id="activity" aria-live="polite"></ol>
+    </section>
+  </main>
+</body>
+</html>

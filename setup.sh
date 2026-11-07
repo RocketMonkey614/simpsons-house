@@ -2,7 +2,7 @@
 set -e
 
 # Simpson's House Complete Setup Script v3.3
-# Sets up MQTT + WebSocket + GPIO control for iOS app communication
+# Sets up MQTT + WebSocket + GPIO control for Chromebook or iOS clients
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="/tmp/simpsons_house_setup.log"
@@ -236,33 +236,35 @@ setup_python_env() {
     # Activate and capture the venv python path explicitly
     source mqttenv/bin/activate
     local VENV_PYTHON="$SCRIPT_DIR/mqttenv/bin/python"
-    local VENV_PIP="$SCRIPT_DIR/mqttenv/bin/python -m pip"
-    log "✅ Virtual environment activated — Python: $($VENV_PYTHON --version)"
+    local VENV_PYTHON_CMD
+    printf -v VENV_PYTHON_CMD '%q' "$VENV_PYTHON"
+    log "✅ Virtual environment activated — Python: $("$VENV_PYTHON" --version)"
 
     # Upgrade pip using python -m pip (avoids bare 'pip' PATH issues)
-    run_cmd "$VENV_PYTHON -m pip install --upgrade pip setuptools wheel" \
+    run_cmd "$VENV_PYTHON_CMD -m pip install --upgrade pip setuptools wheel" \
             "Upgrading pip and setuptools"
 
-    # Install paho-mqtt (required)
-    run_cmd "$VENV_PYTHON -m pip install paho-mqtt" "Installing paho-mqtt"
+    # mqttlistener.py currently uses Paho's version 1 callback signatures.
+    # Keep the supported Paho 2.x compatibility API until those are migrated.
+    run_cmd "$VENV_PYTHON_CMD -m pip install 'paho-mqtt>=2,<3'" "Installing paho-mqtt"
 
     # GPIO library — rpi-lgpio is the modern replacement for the deprecated
     # RPi.GPIO pip package. It provides an identical API (import RPi.GPIO
     # still works) but is backed by lgpio which supports Python 3.13+.
     # python3-lgpio was already installed via apt above.
     log "Installing GPIO library (rpi-lgpio replaces deprecated RPi.GPIO)..."
-    if $VENV_PYTHON -m pip install rpi-lgpio >> "$DEBUG_LOG" 2>&1; then
+    if "$VENV_PYTHON" -m pip install rpi-lgpio >> "$DEBUG_LOG" 2>&1; then
         log "✅ rpi-lgpio installed"
     else
         # Fallback: try legacy RPi.GPIO (still works on some builds)
         warn "rpi-lgpio install failed — trying legacy RPi.GPIO as fallback"
-        $VENV_PYTHON -m pip install RPi.GPIO >> "$DEBUG_LOG" 2>&1 || \
+        "$VENV_PYTHON" -m pip install RPi.GPIO >> "$DEBUG_LOG" 2>&1 || \
             warn "RPi.GPIO also failed — GPIO hardware control will not work"
     fi
 
     # Verify imports
     step "Verifying Python package installations..."
-    if $VENV_PYTHON -c "import paho.mqtt.client" >> "$DEBUG_LOG" 2>&1; then
+    if "$VENV_PYTHON" -c "import paho.mqtt.client" >> "$DEBUG_LOG" 2>&1; then
         log "✅ paho-mqtt import OK"
     else
         error "❌ paho-mqtt import failed"
@@ -270,7 +272,7 @@ setup_python_env() {
 
     # rpi-lgpio exposes the exact RPi.GPIO module name, so this import
     # works whether rpi-lgpio or legacy RPi.GPIO is installed
-    if $VENV_PYTHON -c "import RPi.GPIO" >> "$DEBUG_LOG" 2>&1; then
+    if "$VENV_PYTHON" -c "import RPi.GPIO" >> "$DEBUG_LOG" 2>&1; then
         log "✅ RPi.GPIO import OK"
     else
         warn "RPi.GPIO import failed — GPIO hardware control will not work"
@@ -294,7 +296,7 @@ listener 1883 0.0.0.0
 protocol mqtt
 allow_anonymous true
 
-# WebSocket for iOS app
+# MQTT over WebSocket for Chromebook browsers and the iOS app
 listener 9001 0.0.0.0
 protocol websockets
 allow_anonymous true
@@ -390,6 +392,15 @@ EOF
 setup_systemd_service() {
     step "Setting up systemd service for Simpson's House..."
 
+    # Raspberry Pi OS does not require the account to be named pi.
+    local service_user service_group
+    service_user=$(id -un)
+    service_group=$(id -gn)
+    log "Controller service will run as $service_user:$service_group"
+    if ! id -nG | tr ' ' '\n' | grep -qx gpio; then
+        warn "$service_user is not in the gpio group; GPIO access may fail. Check the Pi's device permissions."
+    fi
+
     sudo tee /etc/systemd/system/simpsons-house.service >/dev/null <<EOF
 [Unit]
 Description=Simpson's House MQTT Listener and GPIO Controller
@@ -399,15 +410,15 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-User=pi
-Group=pi
-WorkingDirectory=$SCRIPT_DIR
-ExecStart=$SCRIPT_DIR/mqttenv/bin/python $SCRIPT_DIR/mqttlistener.py
+User=$service_user
+Group=$service_group
+WorkingDirectory="$SCRIPT_DIR"
+ExecStart="$SCRIPT_DIR/mqttenv/bin/python" "$SCRIPT_DIR/mqttlistener.py"
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-Environment=PYTHONPATH=$SCRIPT_DIR
+Environment="PYTHONPATH=$SCRIPT_DIR"
 Environment=MQTT_BROKER=localhost
 Environment=MQTT_PORT=1883
 
@@ -446,20 +457,19 @@ EOF
 # -----------------------------------------------------------------------------
 
 test_mqtt() {
-    step "Testing MQTT broker..."
+    step "Testing MQTT between TCP and WebSocket clients..."
 
-    if mosquitto_pub -h localhost -t test/setup -m "Simpson's House setup test $(date)" -q 0; then
-        log "✅ MQTT publish test successful"
-    else
-        error "❌ MQTT publish test failed"
+    if [ ! -f "$SCRIPT_DIR/mqtt_websocket_check.py" ]; then
+        error "mqtt_websocket_check.py not found in $SCRIPT_DIR; update the project files"
         return 1
     fi
-
-    timeout 5 mosquitto_sub -h localhost -t test/setup -C 1 >> "$DEBUG_LOG" 2>&1 &
-    sleep 1
-    mosquitto_pub -h localhost -t test/setup -m "Subscribe test" -q 0
-    wait
-    log "✅ MQTT subscribe test completed"
+    if "$SCRIPT_DIR/mqttenv/bin/python" "$SCRIPT_DIR/mqtt_websocket_check.py" >> "$DEBUG_LOG" 2>&1; then
+        log "✅ MQTT messages passed in both directions between ports 1883 and 9001"
+    else
+        error "❌ MQTT TCP/WebSocket test failed; see $DEBUG_LOG"
+        tail -n 12 "$DEBUG_LOG"
+        return 1
+    fi
 }
 
 # -----------------------------------------------------------------------------
@@ -489,16 +499,24 @@ display_summary() {
     log "   🚗 Garage Servo   GPIO 27  (Pin 13) — SG90 signal wire"
     log "   🚪 Door Servo     GPIO 23  (Pin 16) — SG90 signal wire"
     log ""
-    log "📱 iOS App Settings:"
-    log "   Host: $ip_address"
-    log "   WebSocket Port: 9001"
+    log "💻 Chromebook / iOS Connection Settings:"
+    log "   Pi host: ${ip_address:-not detected — check network connection}"
+    log "   MQTT WebSocket: ws://<Pi-IP>:9001/"
     log "   Topics: home/light  home/garage  home/door"
+    log "   Chromebook: open your own student page in Chrome and enter the Pi IP."
+    log "   The page and Pi must be reachable on the same classroom network."
+    log "   For a Pi-hosted classroom demonstration only, run:"
+    log "   python3 -m http.server 8000 --bind 0.0.0.0 --directory \"$SCRIPT_DIR/chromebook-app\""
+    log "   Then open http://<Pi-IP>:8000 on the Chromebook."
+    log "   Student starter files have intentional tasks; see TEACHING_GUIDE.md."
+    log "   Broker access is anonymous and unencrypted: use a trusted network."
     log ""
     log "🔧 Useful Commands:"
     log "   sudo systemctl status simpsons-house"
     log "   sudo journalctl -u simpsons-house -f"
     log "   mosquitto_pub -h localhost -t home/light -m ON"
     log "   mosquitto_pub -h localhost -t home/garage -m OPEN"
+    log "   \"$SCRIPT_DIR/mqttenv/bin/python\" \"$SCRIPT_DIR/mqtt_websocket_check.py\""
     log ""
     log "📁 Logs:"
     log "   Setup : $LOG_FILE"
@@ -531,7 +549,7 @@ main() {
     test_mqtt
     display_summary
 
-    log "🎉 Setup complete! Connect your iPad and start controlling the house."
+    log "🎉 Setup complete! Connect your Chromebook or iOS app to the house."
 }
 
 trap 'error "Setup failed at line $LINENO — check $DEBUG_LOG"' ERR

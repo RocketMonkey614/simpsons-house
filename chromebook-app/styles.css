@@ -1,0 +1,18 @@
+:root { font-family: system-ui, sans-serif; color: #17212f; background: #f3f6fa; }
+body { margin: 0; }
+main { max-width: 950px; margin: auto; padding: 24px; }
+header { margin-bottom: 24px; }
+h1 { margin-bottom: 4px; }
+section, article { background: white; border: 1px solid #d9e1ea; border-radius: 12px; padding: 20px; }
+section { margin-bottom: 18px; }
+h2, h3 { margin-top: 0; }
+.connection-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+input { min-width: 220px; flex: 1; padding: 10px; font: inherit; }
+button { border: 0; border-radius: 8px; background: #1558a6; color: white; padding: 11px 16px; font: inherit; cursor: pointer; margin: 3px 5px 3px 0; }
+button:hover:not(:disabled) { background: #0d417f; }
+button:disabled { background: #a6b0bb; cursor: not-allowed; }
+button:focus-visible, input:focus-visible { outline: 3px solid #ffbb33; outline-offset: 2px; }
+.devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.devices article { background: #f9fbfd; }
+#activity { max-height: 180px; overflow: auto; padding-left: 24px; }
+#activity li { margin: 5px 0; overflow-wrap: anywhere; }
