@@ -1,6 +1,6 @@
 # Teaching Guide — Chromebook coding project
 
-**Years 9–10 Digital Technologies | Term 1 | Simpson's House**
+**Years 9–10 Digital Technologies | Term 1 | House_Automation**
 
 Students develop and personalise a browser controller for their own model house. The [Chromebook starter](chromebook-app/) deliberately has incomplete features and a small logic bug. It is a coding task, not a finished control page. The supplied [house-transport.js](chromebook-app/house-transport.js) handles MQTT packets so students can focus on algorithms, state, debugging, testing, and interface design. The older Swift Playgrounds zip remains an Apple-device example.
 
@@ -68,7 +68,7 @@ Change headings, labels, colours, layout, and status presentation to suit the gr
 
 ### 5. Year 10 bridge to Python
 
-ATAR Computer Science uses Python for examination programming questions. After completing the JavaScript algorithms, translate **commandFor()** and **countActiveDevices()** into [python_bridge.py](chromebook-app/python_bridge.py). Run the provided known-answer tests on the Pi or a Chromebook with Python:
+Computer Science uses Python for examination programming questions. After completing the JavaScript algorithms, translate **commandFor()** and **countActiveDevices()** into [python_bridge.py](chromebook-app/python_bridge.py). Run the provided known-answer tests on the Pi or a Chromebook with Python:
 
 ~~~bash
 python3 -m unittest discover -s chromebook-app -p 'test_python_bridge.py'

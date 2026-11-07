@@ -7,7 +7,7 @@ You will add **one new device from start to finish**:
 
 1. wire it to the Raspberry Pi
 2. teach the Pi's program (`mqttlistener.py`) how to control it
-3. add a button for it in the iPad app
+3. add a button for it in the control interface
 
 The example in this guide is a **doorbell buzzer** on GPIO 5. Once it works, you
 can use exactly the same steps for an LED, a fan, or anything else that is
@@ -49,7 +49,7 @@ what to search for, and exactly what to type.
 
 ## Before you start
 
-**1. Your house works.** The light and both doors work from the iPad.
+**1. Your house works.** The light and both doors work from the device.
 
 **2. You have the latest version.** On the Pi:
 
@@ -76,7 +76,7 @@ sudo systemctl restart simpsons-house.service
 **4. You can use `nano`.** It is the text editor you will use on the Pi. The
 [Tool reference](#nano-edit-a-file-on-the-pi) explains the keys you need.
 
-**5. The app is open in Swift Playgrounds** on the iPad. You will need it in
+**5. The controller is open on the device**. You will need it in
 Part 3.
 
 ---

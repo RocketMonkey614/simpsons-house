@@ -9,7 +9,7 @@ This is EXTENSION hardware. The garage door in the standard build uses an
 SG90 servo on GPIO 27 (see WIRING_GUIDE.md). A stepper is not required to
 complete the project — it is here for students who want to add a motorised
 device of their own. See EXTENSION_GUIDE.md for how to wire a new device
-into the listener and the iPad app.
+into the listener and the interface app.
 
 POWER WARNING
     A 28BYJ-48 can pull well over 200 mA while stepping. Do not run it from

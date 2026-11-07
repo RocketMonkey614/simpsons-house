@@ -30,7 +30,7 @@ function setConnection(message, isConnected) {
 // TASK 1 — The badge always says 0/3. Count true values in deviceStates.
 // Unknown (null) and inactive (false) must not be counted.
 function countActiveDevices() {
-  return 0; // TODO: replace this placeholder with an algorithm using iteration
+  return 0; // TODO: replace this placeholder with an algorithm using iteration if statements
 }
 
 function showActiveCount() {
