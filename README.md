@@ -1,6 +1,6 @@
 # 🏠 Simpson's House Smart Home Control
 
-A comprehensive smart home automation project that allows you to control LEDs and servo-driven garage and front doors on a Raspberry Pi directly from an iOS Swift Playgrounds app using **MQTT over WebSocket**.
+A smart home project for controlling a Raspberry Pi LED and two servo-driven doors. Students can develop a **Chromebook browser controller**, or use the existing iPad Swift Playgrounds app. Both communicate with the Pi using **MQTT over WebSocket**.
 
 [![Status](https://img.shields.io/badge/Status-Smart%20Home%20Ready-brightgreen)](https://github.com/roanvtkc/simpsons-house)
 [![MQTT](https://img.shields.io/badge/MQTT-WebSocket%20Enabled-blue)](https://mqtt.org/)
@@ -17,13 +17,13 @@ A comprehensive smart home automation project that allows you to control LEDs an
 ## ✨ Features
 
 - **🏠 Smart Home Control**: Complete home automation system inspired by The Simpsons
-- **📱 iOS App**: Beautiful SwiftUI interface built for Swift Playgrounds
+- **💻 Chromebook coding project**: An HTML, CSS and JavaScript starter for students to complete and customise
+- **📱 iOS App**: SwiftUI interface built for Swift Playgrounds
 - **🌐 MQTT over WebSocket**: Modern, reliable communication protocol
 - **🔧 GPIO Control**: Direct hardware control of LEDs and servo motors
 - **⚙️ Servo Control**: PWM angle control on both the garage door and the front door
-- **📡 Real-time Communication**: Instant response and status feedback
-- **🔄 Auto-reconnection**: Robust connection handling with keep-alive pings
-- **🕵️ mDNS Discovery**: Automatic network device discovery
+- **📡 Device messaging**: Send commands and receive status through the MQTT broker
+- **🕵️ mDNS Advertisement**: The Pi advertises its MQTT service; Chromebook users enter the Pi address
 - **⚙️ Systemd Integration**: Professional service management
 
 ## 📚 Guides
@@ -48,7 +48,7 @@ layer settings, and verification results.
 
 ```mermaid
 graph TD
-    A[iOS Swift Playgrounds App] -->|WebSocket| B[Mosquitto MQTT Broker]
+    A[Chromebook Chrome or iOS app] -->|MQTT over WebSocket :9001| B[Mosquitto MQTT Broker]
     B -->|TCP| C[Python MQTT Listener]
     C -->|GPIO| D[Raspberry Pi Hardware]
     
@@ -60,12 +60,12 @@ graph TD
 ## 📋 Prerequisites
 
 - **Raspberry Pi** running Raspberry Pi OS (32-bit or 64-bit)
-- **SSH access** to the Pi (default credentials: `pi`/`tkcraspberry`)
-  > 📱 **iPad SSH client**: We recommend [**Secure ShellFish**](https://secureshellfish.app) — no account required, saves sessions, and has a proper iOS keyboard toolbar. Free tier is sufficient for this project.
-- **Git installed** on the Pi (will be installed automatically if missing)
-- **iOS device** with Swift Playgrounds 4+ or macOS with Xcode 13+
+- **Terminal access** to the Pi, either directly or using SSH with an account configured on the Pi
+- **Git installed** on the Pi to clone the project; see the Raspberry Pi setup steps below
+- **One client option:** a Chromebook with Chrome and an approved code editor, or an iPad with Swift Playgrounds / a Mac with Xcode
+- **For the Chromebook student workflow:** ChromeOS Linux development environment with Python 3, or a school-approved alternative that can edit and serve each student's files over local HTTP. A teacher can also serve a demonstration copy from the Pi.
 - **Hardware components**: LEDs, resistors, two SG90 servo motors (garage door and front door), breadboard
-- **Same network**: Both devices must be on the same local network
+- **Network access**: The Chromebook or iPad must be able to reach the Pi on the local network; school Wi-Fi client isolation may need to be addressed by the network administrator
 
 ## 🚀 Quick Start
 
@@ -207,15 +207,54 @@ The setup script will:
 - ✅ Set up Python environment and GPIO control
 - ✅ Create systemd services for automatic startup
 - ✅ Configure mDNS for device discovery
-- ✅ Test all components
+- ✅ Test MQTT messages in both directions between TCP and WebSocket clients; hardware still needs a separate test
 
-### 3. iOS App Setup
+### 3. Choose a control app
 
-1. **Open Swift Playgrounds** on your iOS device
-2. **Create a new playground** or import the provided Swift package
-3. **Copy the Simpson's House app code** into your playground
-4. **Update the IP address** if needed (the app defaults to `192.168.5.115`)
-5. **Run the app** and grant Local Network permissions when prompted
+#### Chromebook: student coding project
+
+The [chromebook-app](chromebook-app/) folder is a **starter project for students to complete**. The garage Close command has an intentional bug, the active-device count and some status handling are unfinished, and the front-door buttons need to be added. The supplied MQTT transport is ready to use. See the [Teaching Guide](TEACHING_GUIDE.md) for the tasks, test cases and curriculum links.
+
+1. On the Pi, find its address and check the services:
+
+   ```bash
+   hostname -I
+   sudo systemctl status mosquitto simpsons-house --no-pager
+   ```
+
+   Use the Pi's local network IP address, for example `192.168.5.123`.
+
+2. Give each student or group **their own copy** of `chromebook-app/`. They can copy it from a teacher-provided project or download and extract this repository using **Code → Download ZIP** on GitHub. On a Chromebook with Linux enabled, copy the `chromebook-app` folder into **Linux files** using the Files app.
+
+3. In the Chromebook Linux terminal, run the following from the Linux home folder. Install or enable Python 3 through the school's approved process if it is unavailable:
+
+   ```bash
+   cd ~
+   python3 -m http.server 8000 --bind 127.0.0.1 --directory chromebook-app
+   ```
+
+   Leave the terminal open. This server serves that student's files on the Chromebook; it does not start the Pi's controller.
+
+4. Open **http://localhost:8000** in Chrome. In **Raspberry Pi address**, enter the Pi's actual IP address from step 1. When the page is hosted locally, the address box may contain `localhost`, which points to the Chromebook and must be replaced. Click **Connect to House**.
+
+5. Edit `index.html`, `styles.css`, and `app.js` in the student's copy, then refresh Chrome to see changes. Use the light as the working example and complete the remaining controls described in the [Teaching Guide](TEACHING_GUIDE.md). The page shows the last reported status; a sent command alone does not confirm the hardware moved.
+
+If Linux is unavailable on managed Chromebooks, use a school-approved editor and a local HTTP server for each student's copy. A page hosted over HTTPS cannot connect to the Pi's `ws://` listener without additional secure hosting and broker configuration.
+
+**Teacher demonstration from the Pi:** From the project folder on the Pi, run:
+
+```bash
+cd ~/simpsons-house
+python3 -m http.server 8000 --bind 0.0.0.0 --directory chromebook-app
+```
+
+Leave that terminal open, then visit `http://PI_IP_ADDRESS:8000` in Chrome, substituting the Pi's address. This serves one shared copy and is suited to demonstration; student edits should be made in separate copies. It serves the same intentionally incomplete starter.
+
+#### iPad: Swift Playgrounds app
+
+1. Download and unzip `SimpsonsHouse.swiftpm.zip` on the iPad and open the resulting project in Swift Playgrounds.
+2. Find the Pi's IP address with `hostname -I` on the Pi. In `ContentView.swift`, set the MQTT client host to that address (see [Network Settings](#network-settings)). The packaged client defaults to `192.168.5.123`.
+3. Run the app and grant Local Network permission if prompted, then tap **Connect to House**.
 
 ### 4. Getting the latest version
 
@@ -271,6 +310,9 @@ not return you to the prompt.
   tune the doors again.
 - **The iPad app.** `git pull` only updates the Pi. To get a new version of the
   app, download `SimpsonsHouse.swiftpm.zip` from GitHub again on the iPad.
+- **Student Chromebook copies.** A `git pull` on the Pi does not update copies
+  saved on Chromebooks. Keep students' customised work and distribute updates
+  separately. A demonstration page served directly from the Pi uses its copy.
 
 #### If `git pull` shows an error
 
@@ -327,26 +369,21 @@ You are not in the project folder. Run `cd ~/simpsons-house` and try again.
 
 The Pi is not connected to the internet. Check the Wi-Fi and try again.
 
-## 🎮 Using the App
+## 🎮 Using the controls
 
-### Connection
-1. **Tap "Connect to House"** to establish MQTT over WebSocket connection
-2. **Wait for "🏠 Simpson's House Connected!"** status
-3. **Start controlling your devices!**
+On a Chromebook, enter the Pi's IP address and click **Connect to House**. The
+light buttons and Activity list provide a starting point for testing. Complete
+the garage, front-door and status tasks in the [Teaching Guide](TEACHING_GUIDE.md)
+before expecting all controls to work. On iPad, run the Swift Playgrounds app
+and tap **Connect to House**.
 
-### Device Controls
-- **💡 Living Room Light**: Toggle the main lighting
-- **🚗 Garage Door**: Open and close using the garage servo
-  - `OPEN`: Drive the servo to the open angle
-  - `CLOSE`: Drive the servo to the closed angle
-  - Tuning these angles: see [SERVO_TUNING_GUIDE.md](SERVO_TUNING_GUIDE.md)
-- **🚪 Front Door**: Operate the servo-controlled entrance
+The Pi accepts these commands:
 
-### Features
-- **📊 Real-time status**: See device states instantly
-- **📋 Activity logs**: Monitor all commands and responses
-- **ℹ️ System info**: View hardware and network configuration
-- **🔄 Auto-reconnect**: Automatic connection recovery
+- **💡 Living room light:** `ON` / `OFF`
+- **🚗 Garage door:** `OPEN` / `CLOSE`
+- **🚪 Front door:** `ON` (open) / `OFF` (close)
+
+To adjust how far the doors move, use the [Servo Tuning Guide](SERVO_TUNING_GUIDE.md).
 
 ## 🛠️ Configuration
 
@@ -359,7 +396,8 @@ The Pi is not connected to the internet. Check the Wi-Fi and try again.
 
 ### Network Ports
 - **1883**: MQTT TCP (standard MQTT clients)
-- **9001**: MQTT WebSocket (iOS app)
+- **9001**: MQTT over WebSocket (Chromebook and iOS clients)
+- **8000**: Optional HTTP server for the Chromebook project. A server bound to `127.0.0.1` on a Chromebook serves only that device; a demonstration server on the Pi must be reachable from the Chromebook.
 
 ### Service Management
 ```bash
@@ -378,7 +416,11 @@ sudo systemctl restart mosquitto
 # Test MQTT manually
 mosquitto_pub -h localhost -t home/light -m ON
 mosquitto_pub -h localhost -t home/garage -m OPEN
-mosquitto_sub -h localhost -t home/# -v
+mosquitto_sub -h localhost -t 'home/#' -v
+
+# Check broker traffic between MQTT TCP and WebSocket without moving hardware
+cd ~/simpsons-house
+mqttenv/bin/python mqtt_websocket_check.py
 ```
 
 ## 🔧 Advanced Configuration
@@ -404,7 +446,13 @@ Move a door until it looks right, type `closed` or `open` to save it, then `q` t
 > 📖 **See [SERVO_TUNING_GUIDE.md](SERVO_TUNING_GUIDE.md)** for step-by-step instructions, reversing a door that opens the wrong way, and slowing the movement down.
 
 ### Network Settings
-Update the iOS app host address:
+
+**Chromebook:** Enter the Pi's IP address in the page's **Raspberry Pi address**
+field. The browser connects to `ws://PI_IP_ADDRESS:9001/`. If the page is
+served at `http://localhost:8000` on the Chromebook, replace `localhost` in the
+field with the Pi's IP.
+
+**iPad:** In the Swift project's `ContentView.swift`, update the MQTT client host:
 ```swift
 @StateObject private var mqttClient = SimpsonsHouseMQTTClient(host: "YOUR_PI_IP_ADDRESS")
 ```
@@ -455,11 +503,11 @@ finally:
 sudo systemctl status mosquitto
 
 # Check listening ports (should show both 1883 and 9001)
-sudo netstat -tlnp | grep -E "(1883|9001)"
+ss -tlnp | grep -E ':(1883|9001) '
 
-# Test MQTT broker
-mosquitto_pub -h localhost -t test/message -m "Hello Simpson's House"
-mosquitto_sub -h localhost -t test/# -v
+# Test MQTT TCP and WebSocket in both directions without moving hardware
+cd ~/simpsons-house
+mqttenv/bin/python mqtt_websocket_check.py
 
 # Check mDNS discovery
 avahi-browse -rt _mqtt._tcp
@@ -475,6 +523,34 @@ mosquitto_pub -h localhost -t home/door -m ON   # Servo open
 ```
 
 ## 🐛 Troubleshooting
+
+<details>
+<summary><strong>Chromebook connection and coding project</strong></summary>
+
+**The page does not load:** Check that the HTTP server is still running. Use
+`http://localhost:8000` when the server runs on the Chromebook, or
+`http://PI_IP_ADDRESS:8000` when it runs on the Pi. Check the folder supplied to
+`--directory` exists and contains `index.html`.
+
+**The page loads but does not connect:** Replace `localhost` in the address
+field with the Pi's IP from `hostname -I`. Check `sudo systemctl status mosquitto`
+on the Pi and run `mqttenv/bin/python mqtt_websocket_check.py` from the project
+folder. This checks the broker locally; it does not prove the Chromebook can
+reach the Pi. Ask the network administrator to check device isolation and TCP
+port 9001. A Pi-hosted page also requires port 8000.
+
+**Chrome blocks the connection:** Use the HTTP setup above. An HTTPS-hosted
+page cannot use the Pi's unsecured `ws://` connection without additional
+secure WebSocket configuration. The supplied anonymous broker configuration is
+for a trusted classroom network.
+
+**A command is sent but the hardware does not respond:** Check
+`sudo systemctl status simpsons-house` and the Activity list. The Chromebook
+starter deliberately contains a garage Close bug, missing door buttons and
+unfinished status handling. Complete the tasks in the
+[Teaching Guide](TEACHING_GUIDE.md), then check wiring and the Pi's service log.
+
+</details>
 
 <details>
 <summary><strong>Servo Motor Issues</strong></summary>
@@ -544,28 +620,32 @@ shell the way an LED can — use the Python snippet in
 ```
 simpsons-house/
 ├── 📄 README.md                    # This file
+├── 📖 TEACHING_GUIDE.md            # Chromebook coding tasks and curriculum links
+├── 📖 WIRING_GUIDE.md              # Wiring and component guidance
 ├── 📖 SERVO_TUNING_GUIDE.md         # Adjusting door angles, direction and speed
 ├── 📖 EXTENSION_GUIDE.md            # Adding your own circuits (Python + Swift)
 ├── 🔧 setup.sh                     # Automated setup script
+├── 🧪 mqtt_websocket_check.py      # TCP / WebSocket broker connection check
 ├── 🐍 mqttlistener.py               # Python MQTT listener with servo control
 ├── 🔐 install_ca.sh                # FortiGate certificate installer
 ├── 🧪 gpio_test.py                  # Hardware test: light + both servos
 ├── 🎛️  servo_calibrate.py            # Set and save each door's open/closed angles
+├── 📁 chromebook-app/              # Student browser coding starter
+│   ├── index.html                  # Page structure and missing door controls
+│   ├── styles.css                  # Student-customisable appearance
+│   ├── app.js                      # Student coding and debugging tasks
+│   ├── house-transport.js          # Supplied MQTT over WebSocket transport
+│   ├── python_bridge.py            # Optional Python translation exercise
+│   └── test_python_bridge.py       # Tests for the Python exercise
 ├── 📁 extensions/                   # Optional extension hardware
 │   └── 🧪 stepper_test.py           # Stepper motor test (extension only)
-├── 📱 ios-app/                     # Swift Playgrounds app code
-│   └── ContentView.swift
-├── 📋 systemd/                     # Systemd service files
-│   └── simpsons-house.service
-└── 📊 docs/                        # Additional documentation
-    ├── hardware-setup.md
-    ├── troubleshooting.md
-    └── api-reference.md
+├── 📱 SimpsonsHouse.swiftpm.zip   # Swift Playgrounds project
+└── 📁 laser-cut/                   # Cutting plans and assembly resources
 ```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Discuss proposed changes in a [GitHub issue](https://github.com/roanvtkc/simpsons-house/issues).
 
 ### Development Setup
 1. **Fork the repository**
@@ -584,7 +664,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] **Temperature sensors** and climate control
 - [ ] **Motion detection** and security features
 - [ ] **Voice control** integration (Siri Shortcuts)
-- [ ] **Web dashboard** for browser control
 
 > **Motors are extension work, not core.** DC motors, steppers, speed control and
 > direction reversal all need external power and a driver board, so they sit
@@ -600,10 +679,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 ### Getting Help
-- 📖 Check the [Documentation](docs/)
+- 📖 Check the [Teaching Guide](TEACHING_GUIDE.md) and the [troubleshooting section](#-troubleshooting)
 - 🐛 [Report Issues](https://github.com/roanvtkc/simpsons-house/issues)
 - 💬 [Discussions](https://github.com/roanvtkc/simpsons-house/discussions)
-- ❓ [FAQ](docs/faq.md)
 
 ### Community
 - 🌟 **Star this repo** if you find it useful!
@@ -614,4 +692,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for smart home enthusiasts and Simpsons fans**
 
-For support and questions, please [open an issue](https://github.com/roanvtkc/simpsons-house/issues) or check our [troubleshooting guide](docs/troubleshooting.md).
+For support and questions, please [open an issue](https://github.com/roanvtkc/simpsons-house/issues) or check the [troubleshooting section](#-troubleshooting).
